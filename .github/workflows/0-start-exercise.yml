@@ -1,4 +1,4 @@
-name: Step 0 # Start Exercise
+name: Step 0 # 실습 시작
 
 on:
   push:
@@ -17,14 +17,14 @@ jobs:
   start_exercise:
     if: |
       !github.event.repository.is_template
-    name: Start Exercise
-    uses: skills/exercise-toolkit/.github/workflows/start-exercise.yml@v0.9.0
+    name: 실습 시작
+    uses: skills-kr/exercise-toolkit/.github/workflows/start-exercise.yml@kr-v0.6.0
     with:
-      exercise-title: "Create and use reusable workflows"
-      intro-message: "Learn how to centralize and standardize your CI automation with reusable workflows."
+      exercise-title: "재사용 가능한 워크플로우 만들기"
+      intro-message: "재사용 가능한 워크플로우를 사용하여 CI 자동화를 중앙화하고 표준화하는 방법을 배웁니다."
 
   post_next_step_content:
-    name: Post next step content
+    name: 다음 단계 내용 게시
     runs-on: ubuntu-latest
     needs: [start_exercise]
     env:
@@ -37,14 +37,14 @@ jobs:
         with:
           ref: main
 
-      - name: Get response templates
+      - name: 응답 템플릿 가져오기
         uses: actions/checkout@v6
         with:
-          repository: skills/exercise-toolkit
+          repository: skills-kr/exercise-toolkit
           path: exercise-toolkit
-          ref: v0.9.0
+          ref: kr-v0.6.0
 
-      - name: Create comment - add step content
+      - name: 댓글 생성 - 단계 내용 추가
         uses: GrantBirki/comment@v2.1.1
         with:
           repository: ${{ env.ISSUE_REPOSITORY }}
@@ -53,15 +53,35 @@ jobs:
           vars: |
             full_repo_name: ${{ github.repository }}
 
-      - name: Create comment - watching for progress
+      - name: 댓글 생성 - 진행 상황 확인 중
         uses: GrantBirki/comment@v2.1.1
         with:
           repository: ${{ env.ISSUE_REPOSITORY }}
           issue-number: ${{ env.ISSUE_NUMBER }}
           file: exercise-toolkit/markdown-templates/step-feedback/watching-for-progress.md
 
-      - name: Enable next step workflow
+      - name: 다음 단계 워크플로우 활성화
         run: |
           gh workflow enable "Step 1"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Workshop Tracker에 시작 보고
+        if: success()
+        continue-on-error: true
+        run: |
+          SESSION_ID=$(jq -r '.sessionId' .github/workshop-config.json)
+          TRACK=$(jq -r '.track' .github/workshop-config.json)
+          API_URL=$(jq -r '.apiUrl' .github/workshop-config.json)
+          curl -s -X POST "$API_URL" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "sessionId": "'"$SESSION_ID"'",
+              "type": "start",
+              "step": 0,
+              "description": "실습 시작",
+              "username": "'"$GITHUB_ACTOR"'",
+              "repo": "'"$GITHUB_REPOSITORY"'",
+              "track": "'"$TRACK"'",
+              "runId": "'"$GITHUB_RUN_ID"'"
+            }' || true

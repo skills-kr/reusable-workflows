@@ -17,11 +17,11 @@ env:
 
 jobs:
   find_exercise:
-    name: Find Exercise Issue
-    uses: skills/exercise-toolkit/.github/workflows/find-exercise-issue.yml@v0.9.0
+    name: 실습 이슈 찾기
+    uses: skills-kr/exercise-toolkit/.github/workflows/find-exercise-issue.yml@kr-v0.6.0
 
   check_step_work:
-    name: Check step work
+    name: 단계 작업 확인
     runs-on: ubuntu-latest
     needs: [find_exercise]
     env:
@@ -35,14 +35,14 @@ jobs:
           repository: ${{ github.repository }}
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      - name: Get response templates
+      - name: 응답 템플릿 가져오기
         uses: actions/checkout@v6
         with:
-          repository: skills/exercise-toolkit
+          repository: skills-kr/exercise-toolkit
           path: exercise-toolkit
-          ref: v0.9.0
+          ref: kr-v0.6.0
 
-      - name: Find last comment
+      - name: 마지막 댓글 찾기
         id: find-last-comment
         uses: peter-evans/find-comment@v4
         with:
@@ -50,7 +50,7 @@ jobs:
           issue-number: ${{ env.ISSUE_NUMBER }}
           direction: last
 
-      - name: Update comment - checking work
+      - name: 댓글 업데이트 - 작업 확인 중
         uses: GrantBirki/comment@v2.1.1
         with:
           repository: ${{ env.ISSUE_REPOSITORY }}
@@ -61,7 +61,7 @@ jobs:
 
       # START: Check practical exercise
 
-      - name: Check for github-pages job in caller workflow
+      - name: 호출자 워크플로우에서 github-pages 작업 확인
         id: check-deploy-pages-call
         continue-on-error: true
         uses: skills/action-keyphrase-checker@v1
@@ -69,7 +69,7 @@ jobs:
           text-file: .github/workflows/ci.yml
           keyphrase: 'uses:\s*\.\/\.github\/workflows\/deploy-pages\.yml'
 
-      - name: Check for GrantBirki/comment action usage
+      - name: GrantBirki/comment 액션 사용 확인
         id: check-comment-action
         continue-on-error: true
         uses: skills/action-keyphrase-checker@v1
@@ -77,7 +77,7 @@ jobs:
           text-file: .github/workflows/ci.yml
           keyphrase: 'uses:\s*GrantBirki\/comment@v2\.1\.1'
 
-      - name: Check for at least three permissions blocks
+      - name: 최소 3개의 permissions 블록 확인
         id: check-permissions-block-count
         continue-on-error: true
         uses: skills/action-keyphrase-checker@v1
@@ -86,7 +86,7 @@ jobs:
           keyphrase: "permissions"
           minimum-occurrences: 3
 
-      - name: Check workflow_run conclusion
+      - name: workflow_run 결론 확인
         id: check-workflow-run-success-condition
         continue-on-error: true
         shell: bash
@@ -98,7 +98,7 @@ jobs:
             exit 1
           fi
 
-      - name: Update comment - step results
+      - name: 댓글 업데이트 - 단계 결과
         uses: GrantBirki/comment@v2.1.1
         with:
           repository: ${{ env.ISSUE_REPOSITORY }}
@@ -120,12 +120,12 @@ jobs:
 
       # END: Check practical exercise
 
-      - name: Fail job if not all checks passed
+      - name: 모든 검사가 통과하지 않으면 실패
         if: contains(steps.*.outcome, 'failure')
         run: exit 1
 
   post_review_content:
-    name: Post review content
+    name: 리뷰 내용 게시
     needs: [find_exercise, check_step_work]
     runs-on: ubuntu-latest
     env:
@@ -136,36 +136,56 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Get response templates
+      - name: 응답 템플릿 가져오기
         uses: actions/checkout@v6
         with:
-          repository: skills/exercise-toolkit
+          repository: skills-kr/exercise-toolkit
           path: exercise-toolkit
-          ref: v0.9.0
+          ref: kr-v0.6.0
 
-      - name: Create comment - step finished - final review next
+      - name: 댓글 생성 - 단계 완료 - 최종 리뷰
         uses: GrantBirki/comment@v2.1.1
         with:
           repository: ${{ env.ISSUE_REPOSITORY }}
           issue-number: ${{ env.ISSUE_NUMBER }}
           file: exercise-toolkit/markdown-templates/step-feedback/lesson-review.md
 
-      - name: Create comment - add review content
+      - name: 댓글 생성 - 리뷰 내용 추가
         uses: GrantBirki/comment@v2.1.1
         with:
           repository: ${{ env.ISSUE_REPOSITORY }}
           issue-number: ${{ env.ISSUE_NUMBER }}
           file: ${{ env.REVIEW_FILE }}
 
-      - name: Disable current workflow
+      - name: 현재 워크플로우 비활성화
         run: gh workflow disable "${{github.workflow}}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Workshop Tracker에 완료 보고
+        if: success()
+        continue-on-error: true
+        run: |
+          SESSION_ID=$(jq -r '.sessionId' .github/workshop-config.json)
+          TRACK=$(jq -r '.track' .github/workshop-config.json)
+          API_URL=$(jq -r '.apiUrl' .github/workshop-config.json)
+          curl -s -X POST "$API_URL" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "sessionId": "'"$SESSION_ID"'",
+              "type": "end",
+              "step": 3,
+              "description": "배포 및 PR 피드백",
+              "username": "'"$GITHUB_ACTOR"'",
+              "repo": "'"$GITHUB_REPOSITORY"'",
+              "track": "'"$TRACK"'",
+              "runId": "'"$GITHUB_RUN_ID"'"
+            }' || true
+
   finish_exercise:
-    name: Finish Exercise
+    name: 실습 완료
     needs: [find_exercise, post_review_content]
-    uses: skills/exercise-toolkit/.github/workflows/finish-exercise.yml@v0.9.0
+    uses: skills-kr/exercise-toolkit/.github/workflows/finish-exercise.yml@kr-v0.6.0
     with:
       issue-url: ${{ needs.find_exercise.outputs.issue-url }}
-      exercise-title: "Create and use reusable workflows"
+      exercise-title: "재사용 가능한 워크플로우 만들기"

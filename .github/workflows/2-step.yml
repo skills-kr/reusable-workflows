@@ -19,11 +19,11 @@ env:
 
 jobs:
   find_exercise:
-    name: Find Exercise Issue
-    uses: skills/exercise-toolkit/.github/workflows/find-exercise-issue.yml@v0.9.0
+    name: 실습 이슈 찾기
+    uses: skills-kr/exercise-toolkit/.github/workflows/find-exercise-issue.yml@kr-v0.6.0
 
   check_step_work:
-    name: Check step work
+    name: 단계 작업 확인
     runs-on: ubuntu-latest
     needs: [find_exercise]
     env:
@@ -34,14 +34,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Get response templates
+      - name: 응답 템플릿 가져오기
         uses: actions/checkout@v6
         with:
-          repository: skills/exercise-toolkit
+          repository: skills-kr/exercise-toolkit
           path: exercise-toolkit
-          ref: v0.9.0
+          ref: kr-v0.6.0
 
-      - name: Find last comment
+      - name: 마지막 댓글 찾기
         id: find-last-comment
         uses: peter-evans/find-comment@v4
         with:
@@ -49,7 +49,7 @@ jobs:
           issue-number: ${{ env.ISSUE_NUMBER }}
           direction: last
 
-      - name: Update comment - checking work
+      - name: 댓글 업데이트 - 작업 확인 중
         uses: GrantBirki/comment@v2.1.1
         with:
           repository: ${{ env.ISSUE_REPOSITORY }}
@@ -60,14 +60,14 @@ jobs:
 
       # START: Check practical exercise
 
-      - name: Check if ci.yml workflow file exists
+      - name: ci.yml 워크플로우 파일 존재 확인
         id: check-ci-file-exists
         continue-on-error: true
         uses: skills/exercise-toolkit/actions/file-exists@v0.9.0
         with:
           file: .github/workflows/ci.yml
 
-      - name: Check for reusable workflow call in ci.yml
+      - name: ci.yml에서 재사용 가능한 워크플로우 호출 확인
         id: check-workflow-call
         continue-on-error: true
         uses: skills/action-keyphrase-checker@v1
@@ -76,7 +76,7 @@ jobs:
           keyphrase: 'uses:\s*\.\/\.github\/workflows\/reusable-node-quality\.yml'
           case-sensitive: true
 
-      - name: Lint ci.yml with actionlint
+      - name: actionlint로 ci.yml 검사
         id: check-actionlint
         continue-on-error: true
         uses: raven-actions/actionlint@v2.1.1
@@ -85,7 +85,7 @@ jobs:
           version: 1.7.10
           fail-on-error: true
 
-      - name: Check workflow name is exactly CI
+      - name: 워크플로우 이름이 정확히 CI인지 확인
         id: check-workflow-name
         continue-on-error: true
         uses: skills/action-keyphrase-checker@v1
@@ -94,7 +94,7 @@ jobs:
           keyphrase: '^name:\s*CI'
           case-sensitive: true
 
-      - name: Update comment - step results
+      - name: 댓글 업데이트 - 단계 결과
         uses: GrantBirki/comment@v2.1.1
         with:
           repository: ${{ env.ISSUE_REPOSITORY }}
@@ -118,12 +118,12 @@ jobs:
 
       # END: Check practical exercise
 
-      - name: Fail job if not all checks passed
+      - name: 모든 검사가 통과하지 않으면 실패
         if: contains(steps.*.outcome, 'failure')
         run: exit 1
 
   post_next_step_content:
-    name: Post next step content
+    name: 다음 단계 내용 게시
     needs: [find_exercise, check_step_work]
     runs-on: ubuntu-latest
     env:
@@ -134,14 +134,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Get response templates
+      - name: 응답 템플릿 가져오기
         uses: actions/checkout@v6
         with:
-          repository: skills/exercise-toolkit
+          repository: skills-kr/exercise-toolkit
           path: exercise-toolkit
-          ref: v0.9.0
+          ref: kr-v0.6.0
 
-      - name: Create comment - step finished
+      - name: 댓글 생성 - 단계 완료
         uses: GrantBirki/comment@v2.1.1
         with:
           repository: ${{ env.ISSUE_REPOSITORY }}
@@ -150,7 +150,7 @@ jobs:
           vars: |
             next_step_number: 3
 
-      - name: Create comment - add step content
+      - name: 댓글 생성 - 단계 내용 추가
         uses: GrantBirki/comment@v2.1.1
         with:
           repository: ${{ env.ISSUE_REPOSITORY }}
@@ -159,18 +159,18 @@ jobs:
           vars: |
             full_repo_name: ${{ github.repository }}
 
-      - name: Create comment - watching for progress
+      - name: 댓글 생성 - 진행 상황 확인 중
         uses: GrantBirki/comment@v2.1.1
         with:
           repository: ${{ env.ISSUE_REPOSITORY }}
           issue-number: ${{ env.ISSUE_NUMBER }}
           file: exercise-toolkit/markdown-templates/step-feedback/watching-for-progress.md
 
-      - name: Wait for CI workflow run to complete
-        # We must wait for the CI workflow to complete before enabling Step 3.
-        # Step 3 triggers on `workflow_run: CI completed`. If we enable Step 3
-        # while CI is still running, the completion event will trigger Step 3
-        # prematurely (before the learner has done the Step 3 work).
+      - name: CI 워크플로우 완료 대기
+        # Step 3을 활성화하기 전에 CI 워크플로우가 완료될 때까지 기다려야 합니다.
+        # Step 3은 `workflow_run: CI completed`로 트리거됩니다. CI가 아직 실행 중일 때
+        # Step 3을 활성화하면, 완료 이벤트가 Step 3을 조기에 트리거합니다
+        # (학습자가 Step 3 작업을 완료하기 전에).
         uses: skills/exercise-toolkit/actions/wait-for-workflow@v0.9.0
         with:
           workflow-id: ci.yml
@@ -180,9 +180,29 @@ jobs:
           timeout: 180
           fail-on-timeout: false
 
-      - name: Disable current workflow and enable next one
+      - name: 현재 워크플로우 비활성화 및 다음 워크플로우 활성화
         run: |
           gh workflow disable "${{github.workflow}}"
           gh workflow enable "Step 3"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Workshop Tracker에 단계 보고
+        if: success()
+        continue-on-error: true
+        run: |
+          SESSION_ID=$(jq -r '.sessionId' .github/workshop-config.json)
+          TRACK=$(jq -r '.track' .github/workshop-config.json)
+          API_URL=$(jq -r '.apiUrl' .github/workshop-config.json)
+          curl -s -X POST "$API_URL" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "sessionId": "'"$SESSION_ID"'",
+              "type": "step",
+              "step": 2,
+              "description": "재사용 워크플로우 호출",
+              "username": "'"$GITHUB_ACTOR"'",
+              "repo": "'"$GITHUB_REPOSITORY"'",
+              "track": "'"$TRACK"'",
+              "runId": "'"$GITHUB_RUN_ID"'"
+            }' || true

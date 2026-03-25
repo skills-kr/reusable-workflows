@@ -1,47 +1,47 @@
-## Step 3: Add permissions-aware deployment and PR feedback
+## Step 3: 권한 인식 배포 및 PR 피드백 추가하기
 
-Great progress! You already call your reusable quality workflow from `ci.yml`.
+훌륭한 진전입니다! 이미 `ci.yml`에서 재사용 가능한 품질 검사 워크플로우를 호출하고 있습니다.
 
-In this final step, you'll expand your CI workflow with more functionalities that will require you to understand workflow permissions.
+이 마지막 단계에서는 워크플로우 권한을 이해해야 하는 더 많은 기능으로 CI 워크플로우를 확장합니다.
 
-Also we will deploy **Octomatch** to GitHub Pages!
+또한 **Octomatch**를 GitHub Pages에 배포합니다!
 
-### 📖 Theory: How permissions pass to reusable workflows
+### 📖 이론: 재사용 가능한 워크플로우에 권한이 어떻게 전달되나요
 
-When a workflow calls a reusable workflow, token permissions are inherited and can only stay the same or become more restrictive.
+워크플로우가 재사용 가능한 워크플로우를 호출하면, 토큰 권한이 상속되며 동일하게 유지되거나 더 제한적으로만 변경될 수 있습니다.
 
-Reusable workflows can be nested and each level inherits from its direct caller, not from the original top-level workflow.
+재사용 가능한 워크플로우는 중첩될 수 있으며, 각 레벨은 원래 최상위 워크플로우가 아닌 직접 호출자로부터 상속됩니다.
 
-| Where permissions are set      | What it controls                                                                 | Can permissions be expanded here? |
+| 권한이 설정되는 위치      | 제어하는 것                                                                 | 여기서 권한을 확장할 수 있나요? |
 | ------------------------------ | -------------------------------------------------------------------------------- | --------------------------------- |
-| Caller workflow (e.g `ci.yml`) | The permission ceiling available to all called workflows and their jobs          | Yes (sets the upper limit)        |
-| Called reusable workflow       | How permissions are scoped for its own jobs and any downstream reusable calls    | No, only same or narrower         |
-| Nested reusable workflow calls | The inherited permission ceiling passed from the direct parent reusable workflow | No, only same or narrower         |
+| 호출자 워크플로우 (예: `ci.yml`) | 모든 호출된 워크플로우와 해당 작업에 사용 가능한 권한 상한          | 예 (상한을 설정)        |
+| 호출된 재사용 가능한 워크플로우       | 자체 작업과 하위 재사용 가능한 호출에 대한 권한 범위    | 아니오, 동일하거나 더 좁게만         |
+| 중첩된 재사용 가능한 워크플로우 호출 | 직접 부모 재사용 가능한 워크플로우에서 전달된 상속된 권한 상한 | 아니오, 동일하거나 더 좁게만         |
 
-### ⌨️ Activity: Enable Github Pages for the repository
+### ⌨️ 활동: 저장소의 GitHub Pages 활성화하기
 
-In the following activity we will expand the `CI` workflow that will deploy **Octomatch** to GitHub Pages. Before we can do that, we need to enable GitHub Pages for this repository.
+다음 활동에서는 **Octomatch**를 GitHub Pages에 배포하는 `CI` 워크플로우를 확장할 것입니다. 그 전에 이 저장소에서 GitHub Pages를 활성화해야 합니다.
 
-1. Go to your repository [settings](https://github.com/{{ full_repo_name }}/settings).
-1. In the left sidebar click on `Pages`
-1. Under `Source` select `GitHub Actions`
+1. 저장소 [설정](https://github.com/{{ full_repo_name }}/settings)으로 이동하세요.
+1. 왼쪽 사이드바에서 `Pages`를 클릭하세요.
+1. `Source`에서 `GitHub Actions`를 선택하세요.
 
-<img width="900" alt="image showing GitHub Pages settings" src="../images/pages-settings.png" />
+<img width="900" alt="GitHub Pages 설정을 보여주는 이미지" src="https://raw.githubusercontent.com/skills-kr/reusable-workflows/main/.github/images/pages-settings.png" />
 
-Now you are ready to add a deployment job to your workflow that will deploy the app to GitHub Pages on every pull request!
+이제 모든 Pull Request에서 앱을 GitHub Pages에 배포하는 배포 작업을 워크플로우에 추가할 준비가 되었습니다!
 
-### ⌨️ Activity: Add deployment and PR comment jobs to your workflow
+### ⌨️ 활동: 배포 및 PR 댓글 작업을 워크플로우에 추가하기
 
-Our next goal is to deploy the app and post the deployed page URL on the pull request.
+다음 목표는 앱을 배포하고 배포된 페이지 URL을 Pull Request에 댓글로 남기는 것입니다.
 
-A reusable workflow called `deploy-pages.yml` is already present in the `.github/workflows` directory. It deploys the app to GitHub Pages and outputs the page URL
+`deploy-pages.yml`이라는 재사용 가능한 워크플로우가 이미 `.github/workflows` 디렉토리에 있습니다. 이 워크플로우는 앱을 GitHub Pages에 배포하고 페이지 URL을 출력합니다.
 
-Let's use that!
+이것을 사용해 봅시다!
 
-1. Open `.github/workflows/ci.yml`.
-1. Let's include another job in the `ci.yml` workflow that will call the `deploy-pages.yml` reusable workflow.
+1. `.github/workflows/ci.yml`을 열어주세요.
+1. `deploy-pages.yml` 재사용 가능한 워크플로우를 호출하는 추가 작업을 `ci.yml` 워크플로우에 포함합시다.
 
-   Add the following job to the end of `ci.yml` file:
+   `ci.yml` 파일 끝에 다음 작업을 추가하세요:
 
    ```yaml
    github-pages:
@@ -56,13 +56,13 @@ Let's use that!
        id-token: write
    ```
 
-   The `needs` keyword ensures this job will run only after the `quality` job succeeds.
+   `needs` 키워드는 이 작업이 `quality` 작업이 성공한 후에만 실행되도록 보장합니다.
 
-   The `permissions` block is used to override and expand the permissions for this job beyond the default `contents: read` permissions set at the workflow level.
+   `permissions` 블록은 워크플로우 수준에서 설정된 기본 `contents: read` 권한을 넘어 이 작업의 권한을 재정의하고 확장하는 데 사용됩니다.
 
-1. Add another job that will use the `page_url` output of the `github-pages` job to comment on the pull request.
+1. `github-pages` 작업의 `page_url` 출력을 사용하여 Pull Request에 댓글을 남기는 또 다른 작업을 추가하세요.
 
-   Add the following job to `ci.yml`:
+   `ci.yml`에 다음 작업을 추가하세요:
 
    ```yaml
    comment:
@@ -78,33 +78,33 @@ Let's use that!
          with:
            issue-number: {% raw %}${{ github.event.pull_request.number }}{% endraw %}
            body: |
-             | Item | Link |
+             | 항목 | 링크 |
              | --- | --- |
              | 🌐 GitHub Pages URL | {% raw %}${{ needs.github-pages.outputs.page_url }}{% endraw %} |
-             | 🧾 Workflow logs | https://github.com/{% raw %}${{ github.repository }}{% endraw %}/actions/runs/{% raw %}${{ github.run_id }}{% endraw %} |
+             | 🧾 워크플로우 로그 | https://github.com/{% raw %}${{ github.repository }}{% endraw %}/actions/runs/{% raw %}${{ github.run_id }}{% endraw %} |
    ```
 
-   The `if: always()` condition ensures that the comment job runs even if the deployment fails, so we can have visibility on the workflow logs in that case.
+   `if: always()` 조건은 배포가 실패하더라도 댓글 작업이 실행되도록 보장하여, 해당 경우에도 워크플로우 로그를 확인할 수 있게 합니다.
 
-### ⌨️ Activity: Verify, commit and push your changes
+### ⌨️ 활동: 변경사항 확인, 커밋 및 푸시하기
 
-We've done a lot of work in this step! The YAML indentation can be tricky, so let's first use `actionlint` to verify there are no syntax errors in our workflow files!
+이 단계에서 많은 작업을 했습니다! YAML 들여쓰기가 까다로울 수 있으므로, 먼저 `actionlint`를 사용하여 워크플로우 파일에 구문 오류가 없는지 확인합시다!
 
-1. In your terminal, run the following command to check for any syntax errors in your `ci.yml` workflow file:
+1. 터미널에서 다음 명령어를 실행하여 `ci.yml` 워크플로우 파일의 구문 오류를 확인하세요:
 
    ```bash
    actionlint .github/workflows/ci.yml
    ```
 
-   Or to check all workflow files:
+   또는 모든 워크플로우 파일을 확인하려면:
 
    ```bash
    actionlint
    ```
 
-   If there are any errors, fix them before proceeding.
+   오류가 있으면 진행하기 전에 수정하세요.
 
-1. Commit and push your `ci.yml` changes to the `reusable-workflows` branch.
-1. Monitor the `CI` workflow running on your pull request and wait for it to fully complete.
-1. Once it's done you should see a new comment on your pull request with the GitHub Pages URL where you can play **Octomatch**!
-1. When the `CI` workflow completes Mona will be notified to check your progress and provide a review!
+1. `ci.yml` 변경사항을 `reusable-workflows` 브랜치에 커밋하고 푸시하세요.
+1. Pull Request에서 `CI` 워크플로우가 실행되는 것을 모니터링하고 완전히 완료될 때까지 기다리세요.
+1. 완료되면 Pull Request에 GitHub Pages URL이 포함된 새 댓글이 표시되며, 거기서 **Octomatch**를 플레이할 수 있습니다!
+1. `CI` 워크플로우가 완료되면 Mona가 진행 상황을 확인하고 리뷰를 제공합니다!
