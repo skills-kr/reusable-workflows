@@ -63,7 +63,7 @@ jobs:
       - name: ci.yml 워크플로우 파일 존재 확인
         id: check-ci-file-exists
         continue-on-error: true
-        uses: skills/exercise-toolkit/actions/file-exists@v0.9.0
+        uses: skills-kr/exercise-toolkit/actions/file-exists@kr-v0.6.0
         with:
           file: .github/workflows/ci.yml
 
@@ -171,7 +171,7 @@ jobs:
         # Step 3은 `workflow_run: CI completed`로 트리거됩니다. CI가 아직 실행 중일 때
         # Step 3을 활성화하면, 완료 이벤트가 Step 3을 조기에 트리거합니다
         # (학습자가 Step 3 작업을 완료하기 전에).
-        uses: skills/exercise-toolkit/actions/wait-for-workflow@v0.9.0
+        uses: skills-kr/exercise-toolkit/actions/wait-for-workflow@kr-v0.6.0
         with:
           workflow-id: ci.yml
           status: completed
